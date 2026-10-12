@@ -1,0 +1,41 @@
+{
+  "version": "0.1.0",
+  "status": "Proposed demo ontology; requires domain-expert review",
+  "sources": [
+    "https://www.w3.org/TR/vocab-ssn/",
+    "https://www.energy.gov/hgeo/geothermal/hydrothermal-resources"
+  ],
+  "classes": {
+    "Entity": {"definition": "An identified object in this demonstration."},
+    "Asset": {"parent": "Entity", "definition": "A physical object or geographic grouping."},
+    "Site": {"parent": "Asset", "definition": "A named grouping of demo wells; not a legal parcel."},
+    "Well": {"parent": "Asset", "definition": "A well identifier; does not imply production status or ownership."},
+    "Reservoir": {"parent": "Asset", "definition": "A modeled subsurface resource; memberships here are synthetic assertions."},
+    "Information": {"parent": "Entity", "definition": "An information artifact, record, or definition."},
+    "Observation": {"parent": "Information", "definition": "A reported measurement with value, units, provenance and quality status. Time and measurement location remain unknown if absent."},
+    "ObservableProperty": {"parent": "Information", "definition": "What was measured, distinct from the measured value."},
+    "Unit": {"parent": "Information", "definition": "The unit in which a measurement is expressed."},
+    "SourceRecord": {"parent": "Information", "definition": "An immutable reference to a row in a specific source snapshot."},
+    "SourceDataset": {"parent": "Information", "definition": "A versioned source artifact, identified by content hash."},
+    "QualityIssue": {"parent": "Information", "definition": "A failure of this demonstration's explicit validation rules."}
+  },
+  "relationships": {
+    "LOCATED_AT": ["Well", "Site"],
+    "ASSIGNED_TO": ["Well", "Reservoir"],
+    "ABOUT": ["Observation", "Well"],
+    "MEASURES": ["Observation", "ObservableProperty"],
+    "HAS_UNIT": ["Observation", "Unit"],
+    "SOURCED_FROM": ["Observation", "SourceRecord"],
+    "PART_OF": ["SourceRecord", "SourceDataset"],
+    "FLAGS": ["QualityIssue", "SourceRecord"]
+  },
+  "rules": [
+    "Every Observation has exactly one ABOUT, MEASURES, HAS_UNIT and SOURCED_FROM edge.",
+    "Every SourceRecord belongs to exactly one content-hashed SourceDataset.",
+    "Missing values are not invented; a missing temperature generates a QualityIssue, not a zero observation.",
+    "Reported negative flow is preserved but marked rejected under the toy positive-flow rule. This is not a universal physical validity judgment.",
+    "No timestamps, sensor identities, measurement depths, legal rights or economic viability are inferred.",
+    "Taxonomy edges describe classes. Domain edges describe instances. Agent memory lives in a separate database.",
+    "This is a property-graph model inspired by SOSA's separation of observations, properties and features; it is not a certified SOSA/OWL implementation."
+  ]
+}

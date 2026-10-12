@@ -1,0 +1,7 @@
+well_id,site,temperature_c,flow_kg_s
+W001,Demo North,185,42
+W002,Demo North,160,35
+W003,Demo South,210,55
+W004,Demo South,,40
+W005,Demo West,190,-5
+W006,Demo West,175,30

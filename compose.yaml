@@ -1,0 +1,23 @@
+name: geothermal-lakehouse-lab
+services:
+  domain:
+    image: ${NEO4J_IMAGE:-neo4j:5.26.0}
+    ports: ["127.0.0.1:7476:7474", "127.0.0.1:7690:7687"]
+    environment:
+      NEO4J_AUTH: neo4j/${LAB_NEO4J_PASSWORD}
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+    volumes: ["domain-data:/data"]
+  memory:
+    image: ${NEO4J_IMAGE:-neo4j:5.26.0}
+    ports: ["127.0.0.1:7477:7474", "127.0.0.1:7691:7687"]
+    environment:
+      NEO4J_AUTH: neo4j/${LAB_NEO4J_PASSWORD}
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+    volumes: ["memory-data:/data"]
+volumes:
+  domain-data:
+  memory-data:

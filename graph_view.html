@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Geothermal Knowledge Graph · WisdomGraph Lab</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#091521;color:#dce8f2;font:15px system-ui}header{padding:25px 30px;border-bottom:1px solid #294052}h1{margin:5px 0;font-size:28px}p{color:#afc4d6;max-width:950px;line-height:1.6}small{color:#6cdbbf}nav{padding:16px 30px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}button,select{background:#183347;color:#eef7fc;border:1px solid #456276;border-radius:7px;padding:9px 13px;cursor:pointer}button.active{background:#11685e}main{display:grid;grid-template-columns:minmax(0,1fr) 310px;min-height:650px}aside{padding:20px;background:#112332;border-left:1px solid #294052;overflow-wrap:anywhere}svg{width:100%;height:740px}svg text{fill:#dce8f2;font-size:11px;pointer-events:none}.node{cursor:pointer;pointer-events:bounding-box}.node text{pointer-events:all}.edge{stroke:#68839b;stroke-opacity:.4}.dim{opacity:.15}dt{color:#6cdbbf;margin-top:12px}dd{margin:4px 0;font-size:13px}footer{padding:18px 30px;color:#9ab0c3;border-top:1px solid #294052}a{color:#6cdbbf}@media(max-width:900px){main{grid-template-columns:1fr}aside{border:0}svg{height:600px}}
+</style>
+<header><small>WISDOMGRAPH · GEOTHERMAL LAKEHOUSE LAB</small><h1>From measurements to connected evidence</h1><p>Proposed ontology v0.1 · Synthetic data · Domain-expert review required.<br>Explore the domain graph and its taxonomy. Agent memory lives in a separate Neo4j database.</p></header>
+<nav><button id="domain" class="active">Domain graph</button><button id="taxonomy">Taxonomy</button><label>Well <select id="well"><option value="">All wells</option></select></label><button id="reset">Reset selection</button><span id="count"></span></nav>
+<main><svg id="graph" viewBox="0 0 1200 740" role="img" aria-label="Interactive geothermal knowledge graph"></svg><aside><h2 id="title">Explore the evidence</h2><p id="hint">Click a node to inspect its properties and highlight its connections. Hover a line for its relationship type.</p><dl id="details"></dl></aside></main>
+<footer>Snapshot exported by graph_lab.py. No live database credentials or external scripts are embedded. Delta integration is proposed, not implemented.</footer>
+<script>
+const data=__GRAPH_DATA__;
+const byId=new Map(data.nodes.map(n=>[n.id,n]));
+const svg=document.querySelector('#graph'),ns='http://www.w3.org/2000/svg';let mode='domain',selected=null;
+const palette={Well:'#4fe0c0',Site:'#60b7ff',Reservoir:'#b198ff',Observation:'#f4bb61',SourceRecord:'#9bb5cf',SourceDataset:'#63d4e9',ObservableProperty:'#e9a9d8',Unit:'#dde896',QualityIssue:'#fb788b',Class:'#77d3c8'};
+data.nodes.filter(n=>n.kind==='Well').forEach(n=>{const o=document.createElement('option');o.value=n.id;o.textContent=n.title;document.querySelector('#well').append(o)});
+function el(tag,attrs={},text){const e=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(text!==undefined)e.textContent=text;return e}
+function inspect(n){selected=n.id;document.querySelector('#title').textContent=n.title;const dl=document.querySelector('#details');dl.replaceChildren();Object.entries(n).forEach(([k,v])=>{const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=k;dd.textContent=String(v);dl.append(dt,dd)});render()}
+function render(){
+ svg.replaceChildren();const defs=el('defs'),marker=el('marker',{id:'arrow',viewBox:'0 0 10 10',refX:19,refY:5,markerWidth:5,markerHeight:5,orient:'auto-start-reverse'});marker.append(el('path',{d:'M 0 0 L 10 5 L 0 10 z',fill:'#68839b'}));defs.append(marker);svg.append(defs);
+ let nodes=data.nodes.filter(n=>(n.kind==='Class')===(mode==='taxonomy'));
+ let edges=data.edges.filter(e=>mode==='taxonomy'?e.relation==='SUBCLASS_OF':!['INSTANCE_OF','SUBCLASS_OF'].includes(e.relation));
+ const well=document.querySelector('#well').value;
+ if(mode==='domain'&&well){const keep=new Set([well]);edges.filter(e=>e.source===well||e.target===well).forEach(e=>{keep.add(e.source);keep.add(e.target)});const obs=new Set(nodes.filter(n=>n.kind==='Observation'&&keep.has(n.id)).map(n=>n.id));edges.filter(e=>obs.has(e.source)).forEach(e=>keep.add(e.target));const records=new Set(nodes.filter(n=>n.kind==='SourceRecord'&&keep.has(n.id)).map(n=>n.id));edges.filter(e=>records.has(e.source)||records.has(e.target)).forEach(e=>{keep.add(e.source);keep.add(e.target)});nodes=nodes.filter(n=>keep.has(n.id));edges=edges.filter(e=>keep.has(e.source)&&keep.has(e.target))}
+ const ids=new Set(nodes.map(n=>n.id));edges=edges.filter(e=>ids.has(e.source)&&ids.has(e.target));
+ const columns=mode==='taxonomy'?[['Entity'],['Asset','Information'],['Site','Well','Reservoir','Observation','ObservableProperty','Unit','SourceRecord','SourceDataset','QualityIssue']]:[['Site','Reservoir'],['Well'],['Observation','QualityIssue'],['ObservableProperty','Unit'],['SourceRecord','SourceDataset']];
+ const positions=new Map();columns.forEach((kinds,i)=>{const group=nodes.filter(n=>kinds.includes(mode==='taxonomy'?n.title:n.kind));group.forEach((n,j)=>positions.set(n.id,{x:100+i*(900/(columns.length-1)),y:60+(j+1)*620/(group.length+1)}))});
+ const neighbors=new Set([selected]);edges.filter(e=>e.source===selected||e.target===selected).forEach(e=>{neighbors.add(e.source);neighbors.add(e.target)});
+ edges.forEach(e=>{const a=positions.get(e.source),b=positions.get(e.target);const line=el('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:'edge'+(selected&&e.source!==selected&&e.target!==selected?' dim':''),'marker-end':'url(#arrow)'});line.append(el('title',{},`${byId.get(e.source).title} — ${e.relation} → ${byId.get(e.target).title}`));svg.append(line)});
+ nodes.forEach(n=>{const p=positions.get(n.id);const g=el('g',{class:'node'+(selected&&!neighbors.has(n.id)?' dim':''),transform:`translate(${p.x},${p.y})`,tabindex:0,role:'button','aria-label':n.title});g.append(el('circle',{r:selected===n.id?12:9,fill:palette[n.kind]||'#ddd',stroke:'#091521','stroke-width':2}));g.append(el('text',{x:14,y:4},n.title.length>29?n.title.slice(0,27)+'…':n.title));g.append(el('title',{},`${n.kind}: ${n.title}`));g.addEventListener('click',()=>inspect(n));g.addEventListener('keydown',e=>{if(e.key==='Enter')inspect(n)});svg.append(g)});
+ document.querySelector('#count').textContent=`${nodes.length} nodes · ${edges.length} relationships`;
+}
+for(const m of ['domain','taxonomy'])document.querySelector('#'+m).onclick=()=>{mode=m;selected=null;document.querySelector('#well').disabled=m==='taxonomy';for(const b of ['domain','taxonomy'])document.querySelector('#'+b).classList.toggle('active',b===m);render()};
+document.querySelector('#well').onchange=()=>{selected=null;render()};document.querySelector('#reset').onclick=()=>{selected=null;document.querySelector('#details').replaceChildren();document.querySelector('#title').textContent='Explore the evidence';render()};render();
+</script></html>
